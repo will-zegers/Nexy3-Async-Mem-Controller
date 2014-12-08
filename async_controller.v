@@ -4,7 +4,8 @@ module async_controller( input         clk,
                          input  [2:0]  addr,
                          input  [2:0]  data_write,
                          inout  [15:0] MemDB,
-                         output        RamCS,
+                         output        RamCLK,
+													RamCS,
                                        MemOE,
                                        MemWR,
                                        RamLB,
@@ -32,10 +33,11 @@ module async_controller( input         clk,
    async_fsm async( systemClock,
                     WR,
                     CS,
+						  RamCLK,
                     RamCS,
                     MemOE,
                     MemWR,
-                    RamLB,RamUB );
+                    RamLB,
                     RamUB );
 
    disp_hex_mux hex_display( systemClock,
@@ -52,7 +54,8 @@ endmodule
 module async_fsm( input  clk,
                          WR,
                          CS,
-                  output RamCS,
+                  output RamCLK,
+								 RamCS,
                          MemOE,
                          MemWR,
                          RamLB,
@@ -62,15 +65,15 @@ module async_fsm( input  clk,
       READ  = 2'b01,
       WRITE = 2'b10,
 
-      INACTIVE = 5'b11111,
+      INACTIVE = 6'b111111,
 
       CYCLES_TO_WAIT = 3'd6;
 
    reg [1:0] current, next;
    reg [2:0] cycle_count;
 
-   reg [4:0] controls;
-   assign { RamCS, MemOE, MemWR, RamLB, RamUB } = controls;
+   reg [5:0] controls;
+   assign { RamCLK, RamCS, MemOE, MemWR, RamLB, RamUB } = controls;
 
    initial begin
       current     <= READY;
@@ -95,11 +98,11 @@ module async_fsm( input  clk,
          end
          READ:    begin
             next     <= ( CYCLES_TO_WAIT == cycle_count ) ? READY : READ;
-            controls <= 5'b00100;
+            controls <= 5'b000100;
          end
          WRITE:   begin
             next     <= ( CYCLES_TO_WAIT == cycle_count ) ? READY : WRITE;
-            controls <= 5'b01000;
+            controls <= 5'b001000;
          end
          default: begin
             next     <= READY;
