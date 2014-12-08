@@ -2,9 +2,10 @@
 module async_controller( input         clk,
                                        WE, EN,
                          input  [2:0]  addr,
-                         input  [2:0]  data_write,
+                         input  [3:0]  data_write,
                          inout  [15:0] MemDB,
-                         output        RamCLK,
+                         output        RamAdv,
+													RamClk,
 													RamCS,
                                        MemOE,
                                        MemWR,
@@ -23,7 +24,7 @@ module async_controller( input         clk,
    reg        WR, CS;
    reg [15:0] data_read;
 
-   assign MemDB = ( WR ) ? { { 13{1'b0} }, data_write } : 16'bZ;	
+   assign MemDB = ( WR ) ? { data_write, data_write, data_write, data_write } : 16'bZ;	
    always @( posedge systemClock ) begin
       data_read = MemDB;
       WR <= WE;
@@ -33,7 +34,8 @@ module async_controller( input         clk,
    async_fsm async( systemClock,
                     WR,
                     CS,
-						  RamCLK,
+						  RamAdv,
+						  RamClk,
                     RamCS,
                     MemOE,
                     MemWR,
@@ -54,7 +56,8 @@ endmodule
 module async_fsm( input  clk,
                          WR,
                          CS,
-                  output RamCLK,
+                  output RamAdv,
+								 RamClk,
 								 RamCS,
                          MemOE,
                          MemWR,
@@ -65,15 +68,15 @@ module async_fsm( input  clk,
       READ  = 2'b01,
       WRITE = 2'b10,
 
-      INACTIVE = 6'b111111,
+      INACTIVE = 7'b1111111,
 
       CYCLES_TO_WAIT = 3'd6;
 
    reg [1:0] current, next;
    reg [2:0] cycle_count;
 
-   reg [5:0] controls;
-   assign { RamCLK, RamCS, MemOE, MemWR, RamLB, RamUB } = controls;
+   reg [6:0] controls;
+   assign { RamAdv, RamClk, RamCS, MemOE, MemWR, RamLB, RamUB } = controls;
 
    initial begin
       current     <= READY;
@@ -98,11 +101,11 @@ module async_fsm( input  clk,
          end
          READ:    begin
             next     <= ( CYCLES_TO_WAIT == cycle_count ) ? READY : READ;
-            controls <= 5'b000100;
+            controls <= 7'b0000100;
          end
          WRITE:   begin
             next     <= ( CYCLES_TO_WAIT == cycle_count ) ? READY : WRITE;
-            controls <= 5'b001000;
+            controls <= 7'b0001000;
          end
          default: begin
             next     <= READY;
